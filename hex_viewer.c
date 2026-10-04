@@ -14,12 +14,16 @@ int main(int argc, char *argv[])
       continue;
     
     }
-    uint8_t buffer[16];
-    size_t bytes_read;
-    int offset=0;
+    
+    uint8_t buffer[16]; //Gives the buffer aray 16 obj capacity, each obj of 1 byte (8 bits)
+    
+    size_t bytes_read; // Sizeof function returns a data type called size_t, hence we used size_t for bytes read for convenienc. some unsigned integer type large enough to represent object sizes
+    
+    size_t offset=0; // Byte offset from the beginning of the file  
+    
     while ((bytes_read = fread(buffer, 1, sizeof buffer, file)) > 0)
 {
-    printf("%08zX  ", offset);
+    printf("%08zX  ", offset); 
 
     for (size_t j = 0; j < bytes_read; j++)
     {
@@ -33,10 +37,10 @@ int main(int argc, char *argv[])
 
     printf(" |");
 
-    for (size_t j = 0; j < bytes_read; j++)
+    for (size_t j = 0; j < bytes_read; j++) // ASCII character print loop. Handles alignment too
     {
         if (buffer[j] >= 32 && buffer[j] <= 126)
-            printf("%c", buffer[j]);
+            printf("%c", buffer[j]); 
         else
             printf(".");
     }
@@ -45,8 +49,7 @@ int main(int argc, char *argv[])
 
     offset += bytes_read;
 }
-   fclose(file);
+    fclose(file);
    }
 }
-   //gcc hex-viewer/hex_viewer.c -o hex-viewer/hex_viewer
-//hex-viewer/hex_viewer ~/hello.txt
+
