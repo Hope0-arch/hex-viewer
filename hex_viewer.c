@@ -1,55 +1,262 @@
 #include <stdio.h>
 #include <stdint.h>
+#include <string.h>
+#include <ctype.h>
+
+void print_offset(size_t offset);
+void hex(FILE *file);
+void ascii(FILE *file);
+void normal(FILE *file);
+void help(const char *program);
+
 
 int main(int argc, char *argv[])
 {
-  for(int i=1; i<argc;i++){
-    
-    FILE *file=fopen(argv[i],"rb");
-    
-    if(file==NULL)
-    {
-    
-      printf("The file doesn't exist\n\n");
-      continue;
-    
-    }
-    
-    uint8_t buffer[16]; //Gives the buffer aray 16 obj capacity, each obj of 1 byte (8 bits)
-    
-    size_t bytes_read; // Sizeof function returns a data type called size_t, hence we used size_t for bytes read for convenienc. some unsigned integer type large enough to represent object sizes
-    
-    size_t offset=0; // Byte offset from the beginning of the file  
-    
-    while ((bytes_read = fread(buffer, 1, sizeof buffer, file)) > 0)
-{
-    printf("%08zX  ", offset); 
+    FILE *file;
+    const char *filename;
 
-    for (size_t j = 0; j < bytes_read; j++)
+    enum
     {
-        printf("%02X ", buffer[j]);
+        NORMAL,
+        HEX,
+        ASCII
+    } mode = NORMAL;
+
+
+    if (argc < 2)
+    {
+        printf("No file has been to given to read!\nPlease use '-h' or '--help' to get more info.\n");
+        return 1;
     }
 
-    for (size_t j = bytes_read; j < sizeof buffer; j++)
+
+    // Flags
+
+    if (strcmp(argv[1], "-h") == 0 ||
+        strcmp(argv[1], "--help") == 0)
     {
-        printf("   ");
+        help(argv[0]);
+        return 0;
     }
 
-    printf(" |");
-
-    for (size_t j = 0; j < bytes_read; j++) // ASCII character print loop. Handles alignment too
+    else if (strcmp(argv[1], "-x") == 0 ||
+             strcmp(argv[1], "--hex") == 0)
     {
-        if (buffer[j] >= 32 && buffer[j] <= 126)
-            printf("%c", buffer[j]); 
-        else
-            printf(".");
+        if (argc < 3)
+        {
+            fprintf(stderr, "No file provided.\n");
+            return 1;
+        }
+
+        mode = HEX;
+        filename = argv[2];
     }
 
-    printf("|\n");
+    else if (strcmp(argv[1], "-a") == 0 ||
+             strcmp(argv[1], "--ascii") == 0)
+    {
+        if (argc < 3)
+        {
+            fprintf(stderr, "No file provided.\n");
+            return 1;
+        }
 
-    offset += bytes_read;
-}
+        mode = ASCII;
+        filename = argv[2];
+    }
+
+    else
+    {
+        filename = argv[1];
+    }
+
+
+    // open file
+
+    file = fopen(filename, "rb");
+
+    if (file == NULL)
+    {
+        perror(filename);
+        return 1;
+    }
+
+    switch (mode)
+    {
+        case HEX:
+            hex(file);
+            break;
+
+        case ASCII:
+            ascii(file);
+            break;
+
+        case NORMAL:
+            normal(file);
+            break;
+    }
+
+
     fclose(file);
-   }
+
+    return 0;
+}
+
+void print_offset(size_t offset)
+{
+    printf("%08zX  ", offset);
+}
+
+
+
+void hex(FILE *file)
+{
+    uint8_t buff[16];
+
+    size_t bytes_read;
+    size_t offset = 0;
+
+
+    while ((bytes_read = fread(buff, 1, sizeof buff, file)) > 0)
+    {
+        print_offset(offset);
+
+
+        for (size_t j = 0; j < bytes_read; j++)
+        {
+            printf("%02X ", buff[j]);
+        }
+
+
+        printf("\n");
+
+        offset += bytes_read;
+    }
+
+
+    if (ferror(file))
+    {
+        fprintf(stderr, "Error while reading file.\n");
+    }
+}
+
+
+
+void ascii(FILE *file)
+{
+    uint8_t buff[16];
+
+    size_t bytes_read;
+    size_t offset = 0;
+
+
+    while ((bytes_read = fread(buff, 1, sizeof buff, file)) > 0)
+    {
+        print_offset(offset);
+
+
+        for (size_t j = 0; j < bytes_read; j++)
+        {
+            
+            if (isprint(buff[j]))
+            {
+                printf("%c", buff[j]);
+            }
+
+            else
+            {
+                printf(".");
+            }
+        }
+
+
+        printf("\n");
+
+        offset += bytes_read;
+    }
+
+
+    if (ferror(file))
+    {
+        fprintf(stderr, "Error while reading file.\n");
+    }
+}
+
+
+
+void normal(FILE *file)
+{
+    uint8_t buff[16];
+
+    size_t bytes_read;
+    size_t offset = 0;
+
+
+    while ((bytes_read = fread(buff, 1, sizeof buff, file)) > 0)
+    {
+        print_offset(offset);
+
+
+        /* HEX */
+
+        for (size_t j = 0; j < bytes_read; j++)
+        {
+            printf("%02X ", buff[j]);
+        }
+
+
+        /* Keep ASCII column aligned on final line */
+
+        for (size_t j = bytes_read; j < sizeof buff; j++)
+        {
+            printf("   ");
+        }
+
+
+        printf(" |");
+
+
+        /* ASCII */
+
+        for (size_t j = 0; j < bytes_read; j++)
+        {
+
+            if (isprint(buff[j]))
+            {
+                printf("%c", buff[j]);
+            }
+
+            else
+            {
+                printf(".");
+            }
+        }
+
+
+        printf("|\n");
+
+        offset += bytes_read;
+    }
+
+
+    if (ferror(file))
+    {
+        fprintf(stderr, "Error while reading file.\n");
+    }
+}
+
+
+
+
+void help(const char *program)
+{
+    printf("Usage:\n");
+    printf("  %s <file>\n", program);
+    printf("  %s [OPTION] <file>\n\n", program);
+
+    printf("Options:\n");
+    printf("  -x, --hex       Display hexadecimal bytes only\n");
+    printf("  -a, --ascii     Display ASCII representation only\n");
+    printf("  -h, --help      Display this help message\n");
 }
 
