@@ -104,7 +104,7 @@ int main(int argc, char *argv[])
 
 void print_offset(size_t offset)
 {
-    printf("%08zX  ", offset);
+    printf("%08zX: ", offset);
 }
 
 
@@ -213,7 +213,7 @@ void normal(FILE *file)
         }
 
 
-        printf(" |");
+        printf(" ");
 
 
         /* ASCII */
@@ -233,7 +233,7 @@ void normal(FILE *file)
         }
 
 
-        printf("|\n");
+        printf("\n");
 
         offset += bytes_read;
     }
